@@ -5,20 +5,21 @@ import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import android.util.Log
 import java.text.NumberFormat
 
 class Investment {
-    var id : Int = 0
-    var investmentName : String ? = null
-    var investmentAmount : Float = 0f
+    var id: Int = 0
+    var investmentName: String? = null
+    var investmentAmount: Float = 0f
 
-    constructor(id : Int, investmentName : String, investmentAmount : Float) {
+    constructor(id: Int, investmentName: String, investmentAmount: Float) {
         this.id = id
         this.investmentAmount = investmentAmount
         this.investmentName = investmentName
     }
 
-    constructor(investmentName : String, investmentAmount : Float) {
+    constructor(investmentName: String, investmentAmount: Float) {
         this.investmentAmount = investmentAmount
         this.investmentName = investmentName
     }
@@ -29,19 +30,15 @@ class Investment {
     }
 }
 
-class InvestmentDBOpenHelper(context: Context,
-                             factory: SQLiteDatabase.CursorFactory?) :
-    SQLiteOpenHelper(context, DATABASE_NAME,
-        factory, DATABASE_VERSION) {
+class InvestmentDBOpenHelper(context: Context, factory: SQLiteDatabase.CursorFactory?) :
+    SQLiteOpenHelper(context, DATABASE_NAME, factory, DATABASE_VERSION) {
 
     override fun onCreate(db: SQLiteDatabase) {
         val table = ("CREATE TABLE " +
                 TABLE_NAME + "(" +
                 COLUMN_ID + " INTEGER PRIMARY KEY," +
-                COLUMN_NAME +
-                " TEXT," +
-                COLUMN_AMOUNT +
-                " REAL" + ")")
+                COLUMN_NAME + " TEXT," +
+                COLUMN_AMOUNT + " REAL" + ")")
         db.execSQL(table)
     }
 
@@ -62,15 +59,28 @@ class InvestmentDBOpenHelper(context: Context,
     fun read(): ArrayList<Investment>? {
         val db = this.readableDatabase
         val cursor = db.rawQuery("SELECT * FROM $TABLE_NAME", null)
-        cursor!! .moveToFirst()
 
         val investments = ArrayList<Investment>()
 
-        while(cursor.moveToNext()) {
-            val name = cursor.getString(cursor.getColumnIndex(COLUMN_NAME))
-            val amount = cursor.getFloat(cursor.getColumnIndex(COLUMN_AMOUNT))
-            val investment = Investment(name, amount)
-            investments.add(investment)
+        if (cursor.moveToFirst()) {
+            do {
+                val nameColumnIndex = cursor.getColumnIndex(COLUMN_NAME)
+                val amountColumnIndex = cursor.getColumnIndex(COLUMN_AMOUNT)
+
+                if (nameColumnIndex >= 0 && amountColumnIndex >= 0) {
+                    val name = cursor.getString(nameColumnIndex)
+                    val amount = cursor.getFloat(amountColumnIndex)
+                    val investment = Investment(name, amount)
+                    investments.add(investment)
+                } else {
+                    if (nameColumnIndex < 0) {
+                        Log.e("InvestmentDBOpenHelper", "Column $COLUMN_NAME not found in cursor")
+                    }
+                    if (amountColumnIndex < 0) {
+                        Log.e("InvestmentDBOpenHelper", "Column $COLUMN_AMOUNT not found in cursor")
+                    }
+                }
+            } while (cursor.moveToNext())
         }
         cursor.close()
 
